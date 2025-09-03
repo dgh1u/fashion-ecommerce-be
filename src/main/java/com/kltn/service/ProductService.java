@@ -11,8 +11,13 @@ import com.kltn.repository.custom.CustomProductQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.util.List;
+import java.util.Map;
+
 public interface ProductService {
     Page<Product> getAllProduct(CustomProductQuery.ProductFilterParam param, PageRequest pageRequest);
+    
+    Page<ProductDto> getAllProductWithInventories(CustomProductQuery.ProductFilterParam param, PageRequest pageRequest);
 
     ProductDto getProductById(Long id);
 

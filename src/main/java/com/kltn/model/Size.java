@@ -1,5 +1,6 @@
 package com.kltn.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -22,5 +23,6 @@ public class Size {
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "size", orphanRemoval = true)
     @JsonManagedReference
+    @JsonIgnore
     private Collection<ProductInventory> inventories;
 }

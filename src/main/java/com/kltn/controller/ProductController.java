@@ -26,6 +26,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -51,11 +52,9 @@ public class ProductController {
     @ApiOperation(value = "Lấy tất cả tin đăng")
     @GetMapping("/products")
     public ResponseEntity<?> getAllProduct(@Valid @ModelAttribute GetProductRequest request) {
-        Page<Product> page = productService.getAllProduct(request,
+        Page<ProductDto> page = productService.getAllProductWithInventories(request,
                 PageRequest.of(request.getStart(), request.getLimit()));
-        return BaseResponse.successListData(
-                page.getContent().stream().map(productMapper::toProductDto).collect(Collectors.toList()),
-                (int) page.getTotalElements());
+        return BaseResponse.successListData(page.getContent(), (int) page.getTotalElements());
     }
 
     // hoàn thành

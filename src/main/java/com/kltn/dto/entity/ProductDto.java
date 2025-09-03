@@ -31,7 +31,7 @@ public class ProductDto {
 
     private List<String> imageStrings;
 
-
+    private List<ProductInventoryDto> inventories;
 
     private String type;
 }

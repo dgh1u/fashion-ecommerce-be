@@ -5,6 +5,7 @@ import com.kltn.model.Criteria;
 import com.kltn.model.Size;
 import com.kltn.model.Product;
 import com.kltn.model.User;
+import com.kltn.model.ProductInventory;
 import com.kltn.utils.CriteriaBuilderUtil;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -12,10 +13,14 @@ import jakarta.persistence.criteria.Predicate;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
-
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class CustomProductQuery {
 
@@ -35,6 +40,10 @@ public class CustomProductQuery {
         private Long userId;
         private String sortField;
         private String sortType;
+        // Thêm các tham số filter mới
+        private String sizes;     // Chuỗi sizes phân cách bởi dấu phẩy (VD: "S,M,L")
+        private String materials; // Chuỗi materials phân cách bởi dấu phẩy (VD: "Cotton,Polyester")  
+        private String colors;    // Chuỗi colors phân cách bởi dấu phẩy (VD: "red,blue")
     }
 
     public static Specification<Product> getFilterProduct(ProductFilterParam param) {
@@ -197,6 +206,34 @@ public class CustomProductQuery {
                     Join<Criteria, Size> sizeJoin = criteriaJoin.join("size", JoinType.LEFT);
                     predicates.add(criteriaBuilder.equal(sizeJoin.get("name"), param.getSizeName()));
                 }
+
+                // Lọc theo chất liệu (material)
+                if (param.getMaterials() != null && !param.getMaterials().isEmpty()) {
+                    String[] materialArray = param.getMaterials().split(",");
+                    List<String> materialList = Arrays.asList(materialArray);
+                    predicates.add(criteriaJoin.get("material").in(materialList));
+                }
+
+                // Lọc theo màu sắc (color)
+                if (param.getColors() != null && !param.getColors().isEmpty()) {
+                    String[] colorArray = param.getColors().split(",");
+                    List<String> colorList = Arrays.asList(colorArray);
+                    predicates.add(criteriaJoin.get("color").in(colorList));
+                }
+            }
+
+            // Lọc theo sizes (các sản phẩm có sizes còn hàng)
+            if (param.getSizes() != null && !param.getSizes().isEmpty()) {
+                String[] sizeArray = param.getSizes().split(",");
+                List<String> sizeList = Arrays.asList(sizeArray);
+                
+                // Join với Inventory và Size để lọc theo size còn hàng
+                Join<Product, ProductInventory> inventoryJoin = root.join("inventories", JoinType.INNER);
+                Join<ProductInventory, Size> sizeJoin = inventoryJoin.join("size", JoinType.INNER);
+                
+                // Lọc các sản phẩm có ít nhất một size trong danh sách và quantity > 0
+                predicates.add(sizeJoin.get("name").in(sizeList));
+                predicates.add(criteriaBuilder.greaterThan(inventoryJoin.get("quantity"), 0));
             }
 
             // Xử lý sắp xếp

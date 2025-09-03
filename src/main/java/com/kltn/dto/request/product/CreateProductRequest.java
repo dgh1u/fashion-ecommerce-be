@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 public class CreateProductRequest {
     // Basic information of Product
@@ -15,4 +17,7 @@ public class CreateProductRequest {
     @Size(min = 50, max = 500, message = "Nội dung mô tả phải từ 50 đến 500 ký tự")
     private String content;
     private CreateCriteriaRequest criteria;
+    
+    // Inventory: Map<sizeId, quantity>
+    private Map<Long, Integer> inventory;
 }

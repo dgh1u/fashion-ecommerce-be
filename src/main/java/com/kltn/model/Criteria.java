@@ -17,8 +17,6 @@ public class Criteria {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "address")
-    private String address;
 
     @Column(name = "first_class", length = 50)
     private String firstClass;
@@ -42,4 +40,7 @@ public class Criteria {
 
     @Column(name = "original_price")
     private Integer originalPrice;
+
+    @Column(name = "gender")
+    private Boolean gender;
 }

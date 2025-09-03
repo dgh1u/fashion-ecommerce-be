@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Mapper(componentModel = "spring", uses = { UserMapper.class, CriteriaMapper.class, CommentMapper.class,
-        DocumentMapper.class })
+        DocumentMapper.class, ProductInventoryMapper.class })
 public interface ProductMapper {
 
     @Mapping(target = "userDTO", source = "user")
