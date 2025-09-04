@@ -70,7 +70,7 @@ public class ProductServiceImp implements ProductService {
     private final UserMapper userMapper;
 
     private final CommentMapper commentMapper;
-    
+
     private final ProductInventoryMapper productInventoryMapper;
 
     // hold
@@ -86,23 +86,24 @@ public class ProductServiceImp implements ProductService {
 
     @Override
     @Transactional
-    public Page<ProductDto> getAllProductWithInventories(CustomProductQuery.ProductFilterParam param, PageRequest pageRequest) {
+    public Page<ProductDto> getAllProductWithInventories(CustomProductQuery.ProductFilterParam param,
+            PageRequest pageRequest) {
         try {
             // Lấy page của Product
             Page<Product> productPage = getAllProduct(param, pageRequest);
-            
+
             // Lấy tất cả productIds
             List<Long> productIds = productPage.getContent().stream()
                     .map(Product::getId)
                     .collect(Collectors.toList());
-            
+
             // Lấy tất cả inventories cho các products này (để tránh N+1 problem)
             List<ProductInventory> allInventories = productInventoryRepository.findByProductIdIn(productIds);
-            
+
             // Group inventories by productId
             Map<Long, List<ProductInventory>> inventoriesMap = allInventories.stream()
                     .collect(Collectors.groupingBy(inventory -> inventory.getProduct().getId()));
-            
+
             // Convert to ProductDto với inventories
             List<ProductDto> productDtos = productPage.getContent().stream()
                     .map(product -> {
@@ -117,31 +118,32 @@ public class ProductServiceImp implements ProductService {
                         dto.setLastUpdate(product.getLastUpdate());
                         dto.setDel(product.getDel() != null ? product.getDel() : false);
                         dto.setType(product.getType());
-                        
+
                         // Map user if exists
                         if (product.getUser() != null) {
                             dto.setUserDTO(userMapper.toUserDto(product.getUser()));
                         }
-                        
+
                         // Map criteria if exists
                         if (product.getCriteria() != null) {
                             dto.setCriteriaDTO(criteriaMapper.toCriteriaDto(product.getCriteria()));
                         }
-                        
+
                         // Set inventories cho product này
-                        List<ProductInventory> productInventories = inventoriesMap.getOrDefault(product.getId(), new ArrayList<>());
+                        List<ProductInventory> productInventories = inventoriesMap.getOrDefault(product.getId(),
+                                new ArrayList<>());
                         List<ProductInventoryDto> inventoryDtos = productInventories.stream()
                                 .map(productInventoryMapper::toProductInventoryDto)
                                 .collect(Collectors.toList());
                         dto.setInventories(inventoryDtos);
-                        
+
                         return dto;
                     })
                     .collect(Collectors.toList());
-            
+
             // Tạo Page<ProductDto> từ Page<Product>
             return new PageImpl<>(productDtos, pageRequest, productPage.getTotalElements());
-            
+
         } catch (Exception e) {
             throw new DataNotFoundException("Không có bài viết nào được tìm thấy! " + e.getMessage());
         }
@@ -171,13 +173,12 @@ public class ProductServiceImp implements ProductService {
             // Lấy thông tin inventory của sản phẩm
             List<ProductInventory> inventories = productInventoryRepository.findByProductId(id);
 
-
             // Thiết lập dữ liệu cho DTO
             productDto.setCriteriaDTO(criteriaDto);
             productDto.setImageStrings(images);
             productDto.setCommentDTOS(commentDtos);
             productDto.setUserDTO(userMapper.toUserDto(product.get().getUser()));
-            
+
             // Set inventories
             List<ProductInventoryDto> inventoryDtos = inventories.stream()
                     .map(productInventoryMapper::toProductInventoryDto)
@@ -250,7 +251,7 @@ public class ProductServiceImp implements ProductService {
         for (Map.Entry<Long, Integer> entry : inventoryMap.entrySet()) {
             Long sizeId = entry.getKey();
             Integer quantity = entry.getValue();
-            
+
             if (quantity != null && quantity > 0) {
                 Optional<Size> sizeOptional = sizeRepository.findById(sizeId);
                 if (sizeOptional.isPresent()) {
@@ -260,9 +261,57 @@ public class ProductServiceImp implements ProductService {
                     inventory.setQuantity(quantity);
                     inventory.setCreatedAt(LocalDateTime.now());
                     inventory.setUpdatedAt(LocalDateTime.now());
-                    
+
                     productInventoryRepository.save(inventory);
                 }
+            }
+        }
+    }
+
+    private void updateProductInventory(Product product, Map<Long, Integer> inventoryMap) {
+        // Approach 1: Update existing inventories và tạo mới nếu cần
+        for (Map.Entry<Long, Integer> entry : inventoryMap.entrySet()) {
+            Long sizeId = entry.getKey();
+            Integer quantity = entry.getValue();
+
+            if (quantity != null && quantity >= 0) { // Cho phép quantity = 0 để xóa
+                Optional<Size> sizeOptional = sizeRepository.findById(sizeId);
+                if (sizeOptional.isPresent()) {
+                    // Tìm inventory hiện có
+                    Optional<ProductInventory> existingInventory = productInventoryRepository
+                            .findByProductIdAndSizeId(product.getId(), sizeId);
+
+                    if (existingInventory.isPresent()) {
+                        // Cập nhật inventory hiện có
+                        ProductInventory inventory = existingInventory.get();
+                        if (quantity > 0) {
+                            inventory.setQuantity(quantity);
+                            inventory.setUpdatedAt(LocalDateTime.now());
+                            productInventoryRepository.save(inventory);
+                        } else {
+                            // Xóa nếu quantity = 0
+                            productInventoryRepository.delete(inventory);
+                        }
+                    } else if (quantity > 0) {
+                        // Tạo inventory mới nếu quantity > 0
+                        ProductInventory inventory = new ProductInventory();
+                        inventory.setProduct(product);
+                        inventory.setSize(sizeOptional.get());
+                        inventory.setQuantity(quantity);
+                        inventory.setCreatedAt(LocalDateTime.now());
+                        inventory.setUpdatedAt(LocalDateTime.now());
+                        productInventoryRepository.save(inventory);
+                    }
+                }
+            }
+        }
+
+        // Xóa các inventory không có trong inventoryMap (các size không được gửi lên)
+        List<ProductInventory> allExistingInventories = productInventoryRepository.findByProductId(product.getId());
+        for (ProductInventory existing : allExistingInventories) {
+            Long existingSizeId = existing.getSize().getId();
+            if (!inventoryMap.containsKey(existingSizeId)) {
+                productInventoryRepository.delete(existing);
             }
         }
     }
@@ -288,7 +337,6 @@ public class ProductServiceImp implements ProductService {
             // Cập nhật thông tin Criteria
             Criteria criteria = criteriaMapper.toCriteria(updateProductRequest.getCriteria());
 
-
             // Cập nhật thông tin Product
             product.setTitle(updateProductRequest.getTitle());
             product.setContent(updateProductRequest.getContent());
@@ -303,6 +351,11 @@ public class ProductServiceImp implements ProductService {
             // Lưu vào database
             criteriaRepository.save(criteria);
             productRepository.save(product);
+
+            // Xử lý inventory nếu có (thêm logic này)
+            if (updateProductRequest.getInventory() != null && !updateProductRequest.getInventory().isEmpty()) {
+                updateProductInventory(product, updateProductRequest.getInventory());
+            }
 
             return productMapper.toUpdateProductResponse(product);
         } catch (Exception e) {

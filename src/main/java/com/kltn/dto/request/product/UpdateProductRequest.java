@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 public class UpdateProductRequest {
     @NotNull
@@ -14,4 +16,7 @@ public class UpdateProductRequest {
     @Size(min = 50, max = 500)
     private String content;
     private CriteriaDto criteria;
+
+    // Thêm inventory để xử lý size và số lượng
+    private Map<Long, Integer> inventory;
 }
