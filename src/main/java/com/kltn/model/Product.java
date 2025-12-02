@@ -21,9 +21,6 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "approved")
-    private Boolean approved;
-
     @Lob
     @Column(name = "content")
     private String content;
@@ -36,9 +33,6 @@ public class Product {
 
     @Column(name = "last_update")
     private LocalDateTime lastUpdate;
-
-    @Column(name = "not_approved")
-    private Boolean notApproved;
 
     @Column(name = "title")
     private String title;

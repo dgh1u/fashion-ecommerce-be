@@ -13,10 +13,6 @@ public class ProductDto {
 
     private String content;
 
-    private boolean approved;
-
-    private boolean notApproved;
-
     private LocalDateTime createAt;
 
     private LocalDateTime lastUpdate;

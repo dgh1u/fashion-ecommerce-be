@@ -16,7 +16,7 @@ import java.util.Map;
 
 public interface ProductService {
     Page<Product> getAllProduct(CustomProductQuery.ProductFilterParam param, PageRequest pageRequest);
-    
+
     Page<ProductDto> getAllProductWithInventories(CustomProductQuery.ProductFilterParam param, PageRequest pageRequest);
 
     ProductDto getProductById(Long id);
@@ -29,10 +29,6 @@ public interface ProductService {
 
     DeleteProductResponse deleteProductByAdmin(Long id);
 
-    ApproveProductResponse ApproveProduct(Long idProduct, String usernameApprove, boolean isApprove);
-
     Page<ProductDto> searchProductByMaps(SearchDto searchForm, int page, int sort);
-
-    Page<ProductDto> getProductWaitingApprove(int page);
 
 }

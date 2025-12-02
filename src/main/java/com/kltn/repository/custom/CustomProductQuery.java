@@ -31,8 +31,6 @@ public class CustomProductQuery {
     @NoArgsConstructor
     public static class ProductFilterParam extends CustomCriteriaQuery.CriteriaFilterParam {
         private String keywords;
-        private Boolean approved;
-        private Boolean notApproved;
         private LocalDateTime startDate;
         private LocalDateTime endDate;
         private String type;
@@ -41,9 +39,9 @@ public class CustomProductQuery {
         private String sortField;
         private String sortType;
         // Thêm các tham số filter mới
-        private String sizes;     // Chuỗi sizes phân cách bởi dấu phẩy (VD: "S,M,L")
-        private String materials; // Chuỗi materials phân cách bởi dấu phẩy (VD: "Cotton,Polyester")  
-        private String colors;    // Chuỗi colors phân cách bởi dấu phẩy (VD: "red,blue")
+        private String sizes; // Chuỗi sizes phân cách bởi dấu phẩy (VD: "S,M,L")
+        private String materials; // Chuỗi materials phân cách bởi dấu phẩy (VD: "Cotton,Polyester")
+        private String colors; // Chuỗi colors phân cách bởi dấu phẩy (VD: "red,blue")
     }
 
     public static Specification<Product> getFilterProduct(ProductFilterParam param) {
@@ -54,14 +52,6 @@ public class CustomProductQuery {
             if (param.keywords != null) {
                 predicates.add(CriteriaBuilderUtil.createPredicateForSearchInsensitive(root, criteriaBuilder,
                         param.keywords, "title"));
-            }
-
-            // Lọc theo trạng thái approved và notApproved
-            if (param.getApproved() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("approved"), param.getApproved()));
-            }
-            if (param.getNotApproved() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("notApproved"), param.getNotApproved()));
             }
 
             // Lọc theo trạng thái hiển thị del
@@ -226,11 +216,11 @@ public class CustomProductQuery {
             if (param.getSizes() != null && !param.getSizes().isEmpty()) {
                 String[] sizeArray = param.getSizes().split(",");
                 List<String> sizeList = Arrays.asList(sizeArray);
-                
+
                 // Join với Inventory và Size để lọc theo size còn hàng
                 Join<Product, ProductInventory> inventoryJoin = root.join("inventories", JoinType.INNER);
                 Join<ProductInventory, Size> sizeJoin = inventoryJoin.join("size", JoinType.INNER);
-                
+
                 // Lọc các sản phẩm có ít nhất một size trong danh sách và quantity > 0
                 predicates.add(sizeJoin.get("name").in(sizeList));
                 predicates.add(criteriaBuilder.greaterThan(inventoryJoin.get("quantity"), 0));

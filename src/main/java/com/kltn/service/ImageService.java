@@ -9,7 +9,11 @@ import java.util.List;
 public interface ImageService {
     ImageDto uploadFile(Long idProduct, MultipartFile file);
 
+    List<ImageDto> uploadMultipleFiles(Long idProduct, List<MultipartFile> files);
+
     Image storeImage(Long idProduct, MultipartFile file);
+
+    Image storeImageWithOrder(Long idProduct, MultipartFile file, Integer orderIndex);
 
     Image getImage(String imageId);
 
@@ -18,4 +22,6 @@ public interface ImageService {
     void deleteAllImages(Long idProduct);
 
     List<ImageDto> getImageDTOByIdProduct(Long idProduct);
+
+    void updateImageOrder(Long idProduct, List<String> imageIds);
 }

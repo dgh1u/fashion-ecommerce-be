@@ -88,24 +88,6 @@ public class ProductController {
         }
     }
 
-    @ApiOperation(value = "Duyệt/Khóa tin đăng")
-    @PutMapping("/product/{id}/approve/{bool}")
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
-    public ResponseEntity<?> approveProductAndLogging(@RequestHeader("Authorization") String token,
-            @PathVariable Long id,
-            @PathVariable boolean bool) {
-        try {
-            String userId = jwtConfig.getUserIdFromJWT(token.split(" ")[1]);
-            return BaseResponse.successData(productService.ApproveProduct(id, userId, bool)); // Trả về status 200 nếu
-                                                                                              // duyệt hoặc khóa thành
-                                                                                              // công
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new Response<>("Lỗi không xác định: " + e.getMessage(), null,
-                            HttpStatus.INTERNAL_SERVER_ERROR.value()));
-        }
-    }
-
     // ok
     @ApiOperation(value = "Cập nhật một tin đăng")
     @PutMapping("/product/{id}")

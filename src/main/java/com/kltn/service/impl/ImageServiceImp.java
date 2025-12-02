@@ -34,7 +34,7 @@ public class ImageServiceImp implements ImageService {
         // Kiểm tra bài đăng có tồn tại không
         Optional<Product> product = productRepository.findById(idProduct);
         if (product.isPresent()) {
-            // Lưu ảnh vào database
+            // Lưu ảnh vào database với thứ tự tự động
             Image image = storeImage(idProduct, file);
             // Tạo link để truy cập ảnh
             String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
@@ -49,6 +49,30 @@ public class ImageServiceImp implements ImageService {
     }
 
     @Override
+    public List<ImageDto> uploadMultipleFiles(Long idProduct, List<MultipartFile> files) {
+        // Kiểm tra bài đăng có tồn tại không
+        Optional<Product> product = productRepository.findById(idProduct);
+        if (product.isEmpty()) {
+            throw new DataNotFoundException("I can't not found productID " + idProduct);
+        }
+
+        List<ImageDto> imageDtos = new ArrayList<>();
+        for (int i = 0; i < files.size(); i++) {
+            MultipartFile file = files.get(i);
+            // Lưu ảnh với thứ tự cụ thể
+            Image image = storeImageWithOrder(idProduct, file, i);
+            // Tạo link để truy cập ảnh
+            String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/image/")
+                    .path(image.getId())
+                    .toUriString();
+            // Thêm vào danh sách kết quả
+            imageDtos.add(new ImageDto(image.getId(), image.getFileName(), file.getContentType(), fileDownloadUri, idProduct));
+        }
+        return imageDtos;
+    }
+
+    @Override
     public Image storeImage(Long idProduct, MultipartFile file) {
         // Lấy tên file và validate
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
@@ -58,9 +82,37 @@ public class ImageServiceImp implements ImageService {
             }
             // Tìm bài đăng
             Optional<Product> product = productRepository.findById(idProduct);
+            if (product.isEmpty()) {
+                throw new DataNotFoundException("I can't not found productID " + idProduct);
+            }
+
+            // Lấy thứ tự tiếp theo cho ảnh mới
+            Integer nextOrderIndex = imageRepository.findMaxOrderIndexByProduct(product.get()) + 1;
 
             // Tạo đối tượng Image và lưu
-            Image image = new Image(fileName, file.getContentType(), file.getBytes(), product.get());
+            Image image = new Image(fileName, file.getContentType(), file.getBytes(), product.get(), nextOrderIndex);
+            return imageRepository.save(image);
+        } catch (Exception e) {
+            throw new MyCustomException("Error while i handle save image " + fileName + "!" + e);
+        }
+    }
+
+    @Override
+    public Image storeImageWithOrder(Long idProduct, MultipartFile file, Integer orderIndex) {
+        // Lấy tên file và validate
+        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+        try {
+            if (fileName.contains("..")) {
+                throw new DataNotFoundException("I can't found file name in " + fileName);
+            }
+            // Tìm bài đăng
+            Optional<Product> product = productRepository.findById(idProduct);
+            if (product.isEmpty()) {
+                throw new DataNotFoundException("I can't not found productID " + idProduct);
+            }
+
+            // Tạo đối tượng Image với thứ tự cụ thể và lưu
+            Image image = new Image(fileName, file.getContentType(), file.getBytes(), product.get(), orderIndex);
             return imageRepository.save(image);
         } catch (Exception e) {
             throw new MyCustomException("Error while i handle save image " + fileName + "!" + e);
@@ -105,6 +157,7 @@ public class ImageServiceImp implements ImageService {
     public List<ImageDto> getImageDTOByIdProduct(Long idProduct) {
         Optional<Product> product = productRepository.findById(idProduct);
         if (product.isPresent()) {
+            // Lấy danh sách ảnh đã sắp xếp theo thứ tự
             List<Image> images = imageRepository.findImageByProduct(product.get());
             List<ImageDto> imageDtos = new ArrayList<>();
             for (Image image : images) {
@@ -115,6 +168,28 @@ public class ImageServiceImp implements ImageService {
             return imageDtos;
         } else {
             throw new DataNotFoundException("I can't not found productID " + idProduct);
+        }
+    }
+
+    @Override
+    public void updateImageOrder(Long idProduct, List<String> imageIds) {
+        Optional<Product> product = productRepository.findById(idProduct);
+        if (product.isEmpty()) {
+            throw new DataNotFoundException("I can't not found productID " + idProduct);
+        }
+
+        // Cập nhật thứ tự cho từng ảnh
+        for (int i = 0; i < imageIds.size(); i++) {
+            String imageId = imageIds.get(i);
+            Optional<Image> imageOptional = imageRepository.findById(imageId);
+            if (imageOptional.isPresent()) {
+                Image image = imageOptional.get();
+                // Kiểm tra ảnh có thuộc product này không
+                if (image.getProduct().getId().equals(idProduct)) {
+                    image.setOrderIndex(i);
+                    imageRepository.save(image);
+                }
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.kltn.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.OnDelete;
@@ -78,5 +79,6 @@ public class PaymentHistory {
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "order_id")
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Orders order;
 }

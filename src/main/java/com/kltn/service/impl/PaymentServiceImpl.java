@@ -3,12 +3,13 @@ package com.kltn.service.impl;
 import com.kltn.dto.request.payment.CreatePaymentRequest;
 import com.kltn.dto.request.payment.PaymentReceiveHookRequest;
 import com.kltn.exception.DataExistException;
+import com.kltn.model.Orders;
 import com.kltn.model.PaymentHistory;
-import com.kltn.model.User;
+import com.kltn.repository.OrderRepository;
 import com.kltn.repository.PaymentRepository;
-import com.kltn.repository.UserRepository;
 import com.kltn.repository.custom.CustomPaymentQuery;
 import com.kltn.service.PaymentService;
+import com.kltn.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,8 +34,9 @@ public class PaymentServiceImpl implements PaymentService {
     private String frontendUrl;
 
     private final PayOS payOS;
-    private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
+    private final OrderRepository orderRepository;
+    private final InventoryService inventoryService;
 
     @Override
     public CheckoutResponseData createPayment(CreatePaymentRequest request, Long id) {
@@ -51,7 +53,8 @@ public class PaymentServiceImpl implements PaymentService {
             paymentHistory.setSuccess(false);
             paymentHistory = paymentRepository.save(paymentHistory);
 
-            // Xây dựng URL chuyển hướng theo mẫu: FRONTEND_URL/payment/{paymentHistoryId}/result
+            // Xây dựng URL chuyển hướng theo mẫu:
+            // FRONTEND_URL/payment/{paymentHistoryId}/result
             String resultUrl = frontendUrl + "/" + paymentHistory.getId() + "/result";
 
             ItemData item = ItemData.builder()
@@ -82,29 +85,90 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    public CheckoutResponseData createPaymentLinkForOrder(CreatePaymentRequest request, Long userId, Long orderId) {
+        try {
+            log.info("Tạo thanh toán cho đơn hàng orderId: {} của user: {}", orderId, userId);
+
+            // Lấy order để có order code
+            Orders order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new DataExistException("Không tìm thấy đơn hàng"));
+
+            Long orderCode = order.getOrderCode();
+
+            // Tạo và lưu PaymentHistory (trạng thái pending) để lấy paymentHistoryId
+            PaymentHistory paymentHistory = new PaymentHistory();
+            paymentHistory.setOrderCode(orderCode);
+            paymentHistory.setAmount(request.getPrice());
+            paymentHistory.setDescription(request.getDesc());
+            paymentHistory.setSuccess(false);
+            paymentHistory.setUserId(userId);
+            paymentHistory.setOrder(order);
+            paymentHistory = paymentRepository.save(paymentHistory);
+
+            // Xây dựng URL chuyển hướng theo mẫu:
+            // FRONTEND_URL/payment/{paymentHistoryId}/result
+            String resultUrl = frontendUrl + "/" + paymentHistory.getId() + "/result";
+
+            ItemData item = ItemData.builder()
+                    .name(request.getDesc())
+                    .quantity(1)
+                    .price(request.getPrice())
+                    .build();
+            PaymentData paymentData = PaymentData.builder()
+                    .orderCode(orderCode)
+                    .amount(request.getPrice())
+                    .description(
+                            request.getDesc().length() > 25 ? request.getDesc().substring(0, 25) : request.getDesc())
+                    .returnUrl(resultUrl)
+                    .cancelUrl(resultUrl)
+                    .item(item)
+                    .build();
+
+            CheckoutResponseData data = payOS.createPaymentLink(paymentData);
+
+            // Cập nhật PaymentHistory với paymentLinkId trả về từ PayOS
+            paymentHistory.setPaymentLinkId(data.getPaymentLinkId());
+            paymentRepository.save(paymentHistory);
+
+            return data;
+        } catch (Exception e) {
+            log.error("Lỗi khi tạo thanh toán cho đơn hàng: {}", e.getMessage(), e);
+            throw new DataExistException("Thanh toán thất bại: " + e.getMessage());
+        }
+    }
+
+    @Override
     public void receiveHook(PaymentReceiveHookRequest request) {
         try {
-            // Lấy userid
-            String description = request.getData().getDescription();
-            String[] parts = description.split(" ");
-            if (parts.length < 2) {
-                throw new DataExistException("Định dạng mô tả không hợp lệ, không thể lấy được user id");
-            }
-            Long id = Long.parseLong(parts[1]);
-
-            Optional<User> userOptional = userRepository.findById(id);
-            if (!userOptional.isPresent()) {
-                throw new DataExistException("Không tồn tại người dùng");
-            }
-            User user = userOptional.get();
-
-            // Tìm PaymentHistory dựa trên orderCode (kiểu Long)
+            // Lấy userid từ description hoặc từ PaymentHistory có sẵn
             Long orderCode = request.getData().getOrderCode();
-            Optional<PaymentHistory> phOpt = paymentRepository.findByOrderCode(orderCode);
+            log.info("=== Xử lý webhook cho orderCode: {} ===", orderCode);
+            log.info("Webhook data: success={}, amount={}", request.isSuccess(), request.getData().getAmount());
+
+            // Thử tìm PaymentHistory với fetch Order
+            Optional<PaymentHistory> phOpt = paymentRepository.findByOrderCodeWithOrder(orderCode);
+
             if (!phOpt.isPresent()) {
-                throw new DataExistException("Không tìm thấy giao dịch tạm với orderCode: " + orderCode);
+                log.error("Không tìm thấy PaymentHistory với orderCode: {} qua findByOrderCodeWithOrder", orderCode);
+                // Thử tìm lại bằng phương thức thông thường
+                phOpt = paymentRepository.findByOrderCode(orderCode);
+                if (!phOpt.isPresent()) {
+                    log.error("Không tìm thấy PaymentHistory với orderCode: {} qua findByOrderCode", orderCode);
+
+                    // Log tất cả PaymentHistory để debug
+                    log.info("Danh sách tất cả PaymentHistory trong DB:");
+                    paymentRepository.findAll().forEach(ph -> {
+                        log.info("  - ID: {}, OrderCode: {}, Amount: {}", ph.getId(), ph.getOrderCode(),
+                                ph.getAmount());
+                    });
+
+                    throw new DataExistException("Không tìm thấy giao dịch tạm với orderCode: " + orderCode);
+                }
             }
+
             PaymentHistory payment = phOpt.get();
+            log.info("Tìm thấy PaymentHistory: ID={}, OrderCode={}, UserId={}",
+                    payment.getId(), payment.getOrderCode(), payment.getUserId());
 
             // Cập nhật các thông tin từ dữ liệu PayOS
             payment.setCode(request.getCode());
@@ -125,11 +189,50 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setVirtualAccountName(request.getData().getVirtualAccountName());
             payment.setVirtualAccountNumber(request.getData().getVirtualAccountNumber());
             payment.setSignature(request.getSignature());
-            payment.setUserId(id);
 
             paymentRepository.save(payment);
+            log.info("Đã cập nhật PaymentHistory ID: {}", payment.getId());
+
+            // Nếu thanh toán thành công và có đơn hàng, cập nhật trạng thái đơn hàng
+            if (request.isSuccess() && payment.getOrder() != null) {
+                try {
+                    Orders order = payment.getOrder();
+                    log.info("Cập nhật đơn hàng: ID={}, OrderCode={}, Status hiện tại={}",
+                            order.getId(), order.getOrderCode(), order.getStatus());
+
+                    // Đảm bảo order được load đầy đủ
+                    if (order.getId() != null) {
+                        order.setStatus("paid");
+                        orderRepository.save(order);
+                        log.info("✅ Đã cập nhật trạng thái đơn hàng {} thành 'paid'", order.getOrderCode());
+
+                        // Cập nhật inventory sau khi thanh toán thành công
+                        try {
+                            inventoryService.updateInventoryAfterPayment(order);
+                            log.info("✅ Đã cập nhật inventory cho đơn hàng {}", order.getOrderCode());
+                        } catch (Exception inventoryEx) {
+                            log.error("❌ Lỗi khi cập nhật inventory cho đơn hàng {}: {}",
+                                    order.getOrderCode(), inventoryEx.getMessage());
+                            // Không throw exception để không ảnh hưởng đến webhook
+                        }
+                    }
+                } catch (Exception orderEx) {
+                    log.error("❌ Lỗi khi cập nhật đơn hàng: {}", orderEx.getMessage(), orderEx);
+                    // Vẫn tiếp tục xử lý webhook thành công
+                }
+            } else {
+                if (!request.isSuccess()) {
+                    log.info("Thanh toán không thành công, không cập nhật đơn hàng");
+                }
+                if (payment.getOrder() == null) {
+                    log.warn("PaymentHistory không có liên kết với Order");
+                }
+            }
+
+            log.info("=== Hoàn thành xử lý webhook cho orderCode: {} ===", orderCode);
+
         } catch (Exception e) {
-            log.error("Lỗi khi xử lý webhook: {}", e.getMessage(), e);
+            log.error("❌ Lỗi khi xử lý webhook: {}", e.getMessage(), e);
             throw new DataExistException("Thanh toán thất bại: " + e.getMessage());
         }
     }

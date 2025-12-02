@@ -112,8 +112,6 @@ public class ProductServiceImp implements ProductService {
                         dto.setId(product.getId());
                         dto.setTitle(product.getTitle());
                         dto.setContent(product.getContent());
-                        dto.setApproved(product.getApproved() != null ? product.getApproved() : false);
-                        dto.setNotApproved(product.getNotApproved() != null ? product.getNotApproved() : false);
                         dto.setCreateAt(product.getCreateAt());
                         dto.setLastUpdate(product.getLastUpdate());
                         dto.setDel(product.getDel() != null ? product.getDel() : false);
@@ -217,8 +215,6 @@ public class ProductServiceImp implements ProductService {
             product.setLastUpdate(LocalDateTime.now());
             product.setUser(user);
             product.setDel(false);
-            product.setApproved(true);
-            product.setNotApproved(true);
 
             // Xử lý đối tượng Criteria liên quan đến bài đăng
             Criteria criteria = criteriaMapper.toCriteria(createProductRequest.getCriteria());
@@ -342,8 +338,6 @@ public class ProductServiceImp implements ProductService {
             product.setContent(updateProductRequest.getContent());
             product.setLastUpdate(LocalDateTime.now());
             product.setCriteria(criteria);
-            product.setApproved(true);
-            product.setNotApproved(true);
 
             // Gán Criteria vào Product (quan hệ 1-1)
             criteria.setProduct(product);
@@ -411,78 +405,7 @@ public class ProductServiceImp implements ProductService {
     }
 
     @Override
-    public ApproveProductResponse ApproveProduct(Long idProduct, String usernameApprove, boolean isApprove) {
-        try {
-            Optional<Product> productOpt = productRepository.findById(idProduct);
-            if (productOpt.isEmpty()) {
-                return new ApproveProductResponse(idProduct, "Không tìm thấy bài đăng", false);
-            }
-
-            Optional<User> userOpt = userRepository.findByEmail(usernameApprove);
-            if (userOpt.isEmpty()) {
-                return new ApproveProductResponse(idProduct,
-                        "Không tìm thấy người dùng có username: " + usernameApprove,
-                        false);
-            }
-
-            Product product = productOpt.get();
-            User user = userOpt.get();
-            User productOwner = product.getUser(); // Chủ bài viết
-
-            if (isApprove) {
-                // Duyệt bài viết
-                product.setApproved(true);
-                product.setNotApproved(false);
-                actionService.createAction(product, user, ActionName.APPROVE);
-            } else {
-                // Khóa bài viết
-                // Kiểm tra trạng thái hiện tại của bài viết
-                boolean wasWaitingApproval = product.getApproved() && product.getNotApproved(); // Chờ duyệt
-                boolean wasApproved = product.getApproved() && !product.getNotApproved(); // Đã duyệt
-
-                // Cập nhật trạng thái khóa bài
-                product.setApproved(false);
-                product.setNotApproved(true);
-
-                // // Hoàn tiền nếu bài viết đang ở trạng thái "Chờ duyệt"
-                // if (wasWaitingApproval) {
-                // productOwner.setBalance(productOwner.getBalance() + 2000);
-                // userRepository.save(productOwner);
-                // log.info("Hoàn tiền 2000 cho user ID: {} khi khóa bài viết ID: {} từ trạng
-                // thái chờ duyệt",
-                // productOwner.getId(), idProduct);
-                // }
-
-                actionService.createAction(product, user, ActionName.BLOCK);
-            }
-
-            productRepository.save(product);
-
-            String message = "Bài đăng đã được " + (isApprove ? "duyệt" : "khóa") + " thành công";
-            // if (!isApprove && product.getApproved() && product.getNotApproved()) {
-            // message += " và đã hoàn tiền 2000 cho chủ bài viết";
-            // }
-
-            return new ApproveProductResponse(idProduct, message, isApprove);
-
-        } catch (Exception e) {
-            log.error("Lỗi khi duyệt bài đăng: {}", e.getMessage());
-            return new ApproveProductResponse(idProduct, "Đã xảy ra lỗi trong quá trình xử lý", false);
-        }
-    }
-
-    @Override
     public Page<ProductDto> searchProductByMaps(SearchDto searchForm, int page, int sort) {
         return null;
-    }
-
-    @Override
-    public Page<ProductDto> getProductWaitingApprove(int page) {
-        // Lấy danh sách bài đăng chờ duyệt từ repository với phân trang
-        Page<Product> products = productRepository.findByApprovedFalseAndNotApprovedFalse(
-                PageRequest.of(page, 12, Sort.by("createAt").descending()));
-
-        // Chuyển đổi từ Page<Product> thành Page<ProductDto>
-        return products.map(productMapper::toProductDto);
     }
 }

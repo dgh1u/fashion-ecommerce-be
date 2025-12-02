@@ -11,6 +11,15 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
+      # Cấu hình batch fetching để tối ưu lazy loading
+      batch-fetch-size: 16
+    properties:
+      hibernate:
+        # Batch loading để giảm N+1 query problem
+        default_batch_fetch_size: 16
+        # Logging để debug queries
+        show_sql: false
+        format_sql: true
   main:
     allow-circular-references: true
   servlet:

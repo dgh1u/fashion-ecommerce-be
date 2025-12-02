@@ -33,10 +33,8 @@ public interface ProductMapper {
 
     // Chuyển đổi từ CreateProductRequest sang Product
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "approved", ignore = true)
     @Mapping(target = "del", ignore = true)
     @Mapping(target = "lastUpdate", ignore = true)
-    @Mapping(target = "notApproved", ignore = true)
     @Mapping(target = "createAt", ignore = true)
     @Mapping(target = "criteria", ignore = true)
     @Mapping(target = "user", ignore = true)

@@ -27,6 +27,9 @@ public class Image {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @Column(name = "order_index")
+    private Integer orderIndex = 0;
+
     public Image() {
     }
 
@@ -35,5 +38,14 @@ public class Image {
         this.fileType = fileType;
         this.data = data;
         this.product = product;
+        this.orderIndex = 0;
+    }
+
+    public Image(String fileName, String fileType, byte[] data, Product product, Integer orderIndex) {
+        this.fileName = fileName;
+        this.fileType = fileType;
+        this.data = data;
+        this.product = product;
+        this.orderIndex = orderIndex;
     }
 }

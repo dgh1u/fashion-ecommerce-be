@@ -36,15 +36,18 @@ public class ImageController {
         imageService.deleteAllImages(idProduct);
     }
 
-    @ApiOperation(value = "Upload nhiều hình ảnh cho một tin đăng")
+    @ApiOperation(value = "Upload nhiều hình ảnh cho một tin đăng với thứ tự")
     @PostMapping("/uploadMultipleFiles/product/{idProduct}")
-
     public List<ImageDto> uploadMultipleFiles(@PathVariable Long idProduct,
             @RequestParam("files") MultipartFile[] files) {
-        return Arrays.asList(files)
-                .stream()
-                .map(file -> uploadFile(idProduct, file)) // Gọi uploadFile cho từng ảnh
-                .collect(Collectors.toList());
+        return imageService.uploadMultipleFiles(idProduct, Arrays.asList(files));
+    }
+
+    @ApiOperation(value = "Cập nhật thứ tự hình ảnh cho một sản phẩm")
+    @PutMapping("/updateImageOrder/product/{idProduct}")
+    public ResponseEntity<String> updateImageOrder(@PathVariable Long idProduct, @RequestBody List<String> imageIds) {
+        imageService.updateImageOrder(idProduct, imageIds);
+        return ResponseEntity.ok("Cập nhật thứ tự hình ảnh thành công");
     }
 
     @ApiOperation(value = "Lấy danh sách hình ảnh của một tin đăng khi chỉnh sửa tin đăng")

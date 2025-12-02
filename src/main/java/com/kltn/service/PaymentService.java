@@ -9,7 +9,9 @@ import org.springframework.data.domain.PageRequest;
 import vn.payos.type.CheckoutResponseData;
 
 public interface PaymentService {
-    CheckoutResponseData createPayment(CreatePaymentRequest request,Long id);
+    CheckoutResponseData createPayment(CreatePaymentRequest request, Long id);
+
+    CheckoutResponseData createPaymentLinkForOrder(CreatePaymentRequest request, Long userId, Long orderId);
 
     void receiveHook(PaymentReceiveHookRequest request);
 

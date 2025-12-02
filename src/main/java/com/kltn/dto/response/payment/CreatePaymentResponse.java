@@ -11,4 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class CreatePaymentResponse {
     private String url;
+    private Long orderCode;
+    private Long orderId;
 }
