@@ -25,7 +25,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import vn.payos.type.CheckoutResponseData;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
 
 import java.util.Optional;
 import java.util.List;
@@ -51,7 +51,7 @@ public class PaymentController {
         if (userIdObj != null) {
             Long userId = Long.parseLong(userIdObj.toString());
 
-            CheckoutResponseData data = paymentService.createPayment(request, userId);
+            CreatePaymentLinkResponse data = paymentService.createPayment(request, userId);
             String checkoutUrl = data.getCheckoutUrl();
             return ResponseEntity.ok(CreatePaymentResponse.builder().url(checkoutUrl).build());
         }

@@ -18,9 +18,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.payos.PayOS;
-import vn.payos.type.CheckoutResponseData;
-import vn.payos.type.ItemData;
-import vn.payos.type.PaymentData;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
+import vn.payos.model.v2.paymentRequests.PaymentLinkItem;
 
 import java.util.Date;
 import java.util.Optional;
@@ -39,7 +39,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final InventoryService inventoryService;
 
     @Override
-    public CheckoutResponseData createPayment(CreatePaymentRequest request, Long id) {
+    public CreatePaymentLinkResponse createPayment(CreatePaymentRequest request, Long id) {
         try {
             log.info("Tạo thanh toán cho userId: {}", id);
             String currentTimeString = String.valueOf(new Date().getTime());
@@ -57,21 +57,21 @@ public class PaymentServiceImpl implements PaymentService {
             // FRONTEND_URL/payment/{paymentHistoryId}/result
             String resultUrl = frontendUrl + "/" + paymentHistory.getId() + "/result";
 
-            ItemData item = ItemData.builder()
+            PaymentLinkItem item = PaymentLinkItem.builder()
                     .name(id + " " + request.getDesc())
-                    .quantity(1)
-                    .price(request.getPrice())
+                    .quantity(Integer.valueOf(1))
+                    .price(Long.valueOf(request.getPrice()))
                     .build();
-            PaymentData paymentData = PaymentData.builder()
+            CreatePaymentLinkRequest paymentData = CreatePaymentLinkRequest.builder()
                     .orderCode(orderCode)
-                    .amount(request.getPrice())
+                    .amount(Long.valueOf(request.getPrice()))
                     .description(id + " " + request.getDesc())
                     .returnUrl(resultUrl)
                     .cancelUrl(resultUrl)
-                    .item(item)
+                    .items(java.util.Collections.singletonList(item))
                     .build();
 
-            CheckoutResponseData data = payOS.createPaymentLink(paymentData);
+            CreatePaymentLinkResponse data = payOS.paymentRequests().create(paymentData);
 
             // Cập nhật PaymentHistory với paymentLinkId trả về từ PayOS
             paymentHistory.setPaymentLinkId(data.getPaymentLinkId());
@@ -85,7 +85,8 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public CheckoutResponseData createPaymentLinkForOrder(CreatePaymentRequest request, Long userId, Long orderId) {
+    public CreatePaymentLinkResponse createPaymentLinkForOrder(CreatePaymentRequest request, Long userId,
+            Long orderId) {
         try {
             log.info("Tạo thanh toán cho đơn hàng orderId: {} của user: {}", orderId, userId);
 
@@ -109,22 +110,22 @@ public class PaymentServiceImpl implements PaymentService {
             // FRONTEND_URL/payment/{paymentHistoryId}/result
             String resultUrl = frontendUrl + "/" + paymentHistory.getId() + "/result";
 
-            ItemData item = ItemData.builder()
+            PaymentLinkItem item = PaymentLinkItem.builder()
                     .name(request.getDesc())
-                    .quantity(1)
-                    .price(request.getPrice())
+                    .quantity(Integer.valueOf(1))
+                    .price(Long.valueOf(request.getPrice()))
                     .build();
-            PaymentData paymentData = PaymentData.builder()
+            CreatePaymentLinkRequest paymentData = CreatePaymentLinkRequest.builder()
                     .orderCode(orderCode)
-                    .amount(request.getPrice())
+                    .amount(Long.valueOf(request.getPrice()))
                     .description(
                             request.getDesc().length() > 25 ? request.getDesc().substring(0, 25) : request.getDesc())
                     .returnUrl(resultUrl)
                     .cancelUrl(resultUrl)
-                    .item(item)
+                    .items(java.util.Collections.singletonList(item))
                     .build();
 
-            CheckoutResponseData data = payOS.createPaymentLink(paymentData);
+            CreatePaymentLinkResponse data = payOS.paymentRequests().create(paymentData);
 
             // Cập nhật PaymentHistory với paymentLinkId trả về từ PayOS
             paymentHistory.setPaymentLinkId(data.getPaymentLinkId());
@@ -175,7 +176,7 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setDescrip(request.getDesc());
             payment.setSuccess(request.isSuccess());
             payment.setDescStatus(request.getData().getDesc());
-            payment.setAmount(request.getData().getAmount());
+            payment.setAmount(request.getData().getAmount() != null ? request.getData().getAmount().intValue() : null);
             payment.setDescription(request.getData().getDescription());
             payment.setAccountNumber(request.getData().getAccountNumber());
             payment.setReference(request.getData().getReference());

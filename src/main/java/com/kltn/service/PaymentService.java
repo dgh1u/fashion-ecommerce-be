@@ -6,12 +6,12 @@ import com.kltn.model.PaymentHistory;
 import com.kltn.repository.custom.CustomPaymentQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import vn.payos.type.CheckoutResponseData;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
 
 public interface PaymentService {
-    CheckoutResponseData createPayment(CreatePaymentRequest request, Long id);
+    CreatePaymentLinkResponse createPayment(CreatePaymentRequest request, Long id);
 
-    CheckoutResponseData createPaymentLinkForOrder(CreatePaymentRequest request, Long userId, Long orderId);
+    CreatePaymentLinkResponse createPaymentLinkForOrder(CreatePaymentRequest request, Long userId, Long orderId);
 
     void receiveHook(PaymentReceiveHookRequest request);
 

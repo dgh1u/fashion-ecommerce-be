@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.payos.type.CheckoutResponseData;
+import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
 
 import java.util.Date;
 import java.util.Objects;
@@ -96,7 +96,7 @@ public class CheckoutServiceImpl implements CheckoutService {
             paymentRequest.setDesc(description);
 
             // 6. Tạo payment link với PayOS
-            CheckoutResponseData paymentData = paymentService.createPaymentLinkForOrder(paymentRequest, userId,
+            CreatePaymentLinkResponse paymentData = paymentService.createPaymentLinkForOrder(paymentRequest, userId,
                     order.getId());
 
             // 7. Xóa giỏ hàng sau khi tạo đơn hàng thành công
