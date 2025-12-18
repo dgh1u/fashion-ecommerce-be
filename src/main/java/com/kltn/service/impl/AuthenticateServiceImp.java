@@ -66,7 +66,8 @@ public class AuthenticateServiceImp implements AuthenticateService {
         }
 
         // Tạo Authentication object
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        Authentication authentication = authenticationManager
+                .authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -94,7 +95,7 @@ public class AuthenticateServiceImp implements AuthenticateService {
         User user = new User();
 
         Optional<Role> customerRole = roleRepository.findById(RoleEnum.CUSTOMER.name());
-        Role role=customerRole.get();
+        Role role = customerRole.get();
         if (!customerRole.isPresent()) {
             role.setRoleId(RoleEnum.CUSTOMER.name());
             role.setName("Khách hàng");
@@ -105,18 +106,12 @@ public class AuthenticateServiceImp implements AuthenticateService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setIsSuperAdmin(false);
-        user.setBlock(true);
+        user.setBlock(false);
         user.setPhone(request.getPhone());
 
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        String otp = OtpUtil.generateOtp();
-        user.setOtp(otp);
-        user.setOtpGeneratedTime(Instant.now());
-
         user.setRole(role);
-
-        mailUtil.sendOtpEmail(user.getEmail(), otp);
 
         userRepository.saveAndFlush(user);
 
@@ -187,12 +182,12 @@ public class AuthenticateServiceImp implements AuthenticateService {
             throw new DataExistException("Người dùng không tồn tại");
         }
         try {
-            User user =userOptional.get();
+            User user = userOptional.get();
             user.setFullName(request.getFullName());
             user.setPhone(request.getPhone());
             user.setAddress(request.getAddress());
             return userMapper.toUserDto(userRepository.saveAndFlush(user));
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new MyCustomException("Có lỗi xảy ra trong quá trình cập nhât người dùng");
         }
     }
