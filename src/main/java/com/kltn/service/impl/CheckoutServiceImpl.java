@@ -32,6 +32,17 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final CartService cartService;
     private final UserRepository userRepository;
 
+    /**
+     * Xử lý thanh toán đơn hàng
+     * Các bước thực hiện:
+     * 1. Lấy giỏ hàng và kiểm tra
+     * 2. Tính tổng tiền và validate
+     * 3. Tạo đơn hàng mới
+     * 4. Tạo các order items từ cart items
+     * 5. Tạo payment request
+     * 6. Tạo payment link với PayOS
+     * 7. Xóa giỏ hàng sau khi tạo đơn hàng thành công
+     */
     @Override
     public CreatePaymentResponse checkout(Long userId, CheckoutRequest request) {
         try {

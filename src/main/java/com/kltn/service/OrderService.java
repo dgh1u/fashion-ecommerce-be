@@ -17,4 +17,6 @@ public interface OrderService {
     void cancelOrder(Long id);
 
     void cancelOrderByUserId(Long id, Long userId);
+
+    void updateOrderStatus(Long id, String status);
 }

@@ -23,8 +23,6 @@ public class ProductDto {
 
     private CriteriaDto criteriaDTO;
 
-    private List<CommentDto> commentDTOS;
-
     private List<String> imageStrings;
 
     private List<ProductInventoryDto> inventories;

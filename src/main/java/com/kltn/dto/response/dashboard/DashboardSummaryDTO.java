@@ -16,4 +16,8 @@ public class DashboardSummaryDTO {
     private long totalProducts;
     // Tổng doanh thu = tổng amount của các giao dịch có success = true
     private long totalRevenue;
+    // Tổng số đơn hàng
+    private long totalOrders;
+    // Tổng số tồn kho (tổng quantity của tất cả ProductInventory)
+    private long totalInventory;
 }

@@ -33,43 +33,63 @@ public class UserServiceImp implements UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Lấy tất cả người dùng với phân trang và filter
+     * Sử dụng Specification để lọc theo tiêu chí
+     */
     @Override
     public Page<User> getAllUser(CustomUserQuery.UserFilterParam param, PageRequest pageRequest) {
         Specification<User> specification = CustomUserQuery.getFilterUser(param);
         return userRepository.findAll(specification, pageRequest);
     }
 
+    /**
+     * Tìm người dùng theo email
+     * Kiểm tra sự tồn tại và trả về UserDto
+     */
     @Override
     public UserDto selectUserByEmail(String email) {
-        Optional<User> userOptional=userRepository.findByEmail(email);
-        if(!userOptional.isPresent()){
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (!userOptional.isPresent()) {
             throw new DataExistException("Email không tồn tại");
         }
-        User user=userOptional.get();
+        User user = userOptional.get();
         return userMapper.toUserDto(user);
     }
 
+    /**
+     * Tìm người dùng theo ID
+     * Kiểm tra sự tồn tại và trả về UserDto
+     */
     @Override
     public UserDto selectUserById(Long id) {
-        Optional<User> userOptional=userRepository.findById(id);
-        if(!userOptional.isPresent()){
+        Optional<User> userOptional = userRepository.findById(id);
+        if (!userOptional.isPresent()) {
             throw new DataExistException("Người dùng không tồn tại");
         }
-        User user=userOptional.get();
+        User user = userOptional.get();
         return userMapper.toUserDto(user);
     }
 
+    /**
+     * Thay đổi avatar của người dùng
+     * Mã hóa ảnh thành Base64 và lưu vào database
+     */
     @Override
     public void changeAvatar(String email, byte[] fileBytes) {
-        Optional<User> userOptional=userRepository.findByEmail(email);
-        if(!userOptional.isPresent()){
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (!userOptional.isPresent()) {
             throw new DataExistException("Email không tồn tại");
         }
-        User user=userOptional.get();
+        User user = userOptional.get();
         user.setB64(Base64.getEncoder().encodeToString(fileBytes));
         userRepository.saveAndFlush(user);
     }
 
+    /**
+     * Tạo người dùng mới
+     * Kiểm tra email tồn tại, mã hóa mật khẩu và gán role
+     */
     @Override
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
@@ -84,11 +104,15 @@ public class UserServiceImp implements UserService {
             user.setBlock(false);
 
             return userMapper.toUserDto(userRepository.saveAndFlush(user));
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new MyCustomException("Có lỗi xảy ra trong quá trình thêm người dùng");
         }
     }
 
+    /**
+     * Cập nhật thông tin người dùng
+     * Giữ nguyên mật khẩu, cập nhật thông tin khác và role
+     */
     @Override
     @Transactional
     public UserDto updateUser(UpdateUserRequest request) {
@@ -102,11 +126,15 @@ public class UserServiceImp implements UserService {
             user.setRole(buildRole(request.getRoleId()));
             user.setPassword(userOptional.get().getPassword());
             return userMapper.toUserDto(userRepository.saveAndFlush(user));
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new MyCustomException("Có lỗi xảy ra trong quá trình cập nhât người dùng");
         }
     }
 
+    /**
+     * Xóa người dùng theo ID
+     * Kiểm tra tồn tại trước khi xóa
+     */
     @Override
     public void deleteUser(Long id) {
         Optional<User> userOptional = userRepository.findById(id);
@@ -115,11 +143,15 @@ public class UserServiceImp implements UserService {
         }
         try {
             userRepository.deleteById(id);
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new MyCustomException("Có lỗi xảy ra trong quá trình xóa người dùng");
         }
     }
 
+    /**
+     * Xóa nhiều người dùng theo danh sách ID
+     * Trả về danh sách người dùng đã bị xóa
+     */
     @Override
     public List<UserDto> deleteAllIdUsers(List<Long> ids) {
         List<UserDto> userDtos = new ArrayList<>();
@@ -136,6 +168,10 @@ public class UserServiceImp implements UserService {
         return userDtos;
     }
 
+    /**
+     * Tìm và trả về Role theo roleId
+     * Sử dụng trong quá trình tạo và cập nhật user
+     */
     private Role buildRole(String roleId) {
         return roleRepository.findById(roleId).orElseThrow(() -> new MyCustomException("Role không tồn tại!"));
     }

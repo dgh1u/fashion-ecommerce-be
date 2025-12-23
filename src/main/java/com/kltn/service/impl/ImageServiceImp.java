@@ -29,6 +29,10 @@ public class ImageServiceImp implements ImageService {
 
     private final ProductRepository productRepository;
 
+    /**
+     * Upload một file ảnh cho sản phẩm
+     * Lưu ảnh vào database và trả về thông tin ảnh cùng link truy cập
+     */
     @Override
     public ImageDto uploadFile(Long idProduct, MultipartFile file) {
         // Kiểm tra bài đăng có tồn tại không
@@ -48,6 +52,10 @@ public class ImageServiceImp implements ImageService {
         }
     }
 
+    /**
+     * Upload nhiều file ảnh cho sản phẩm
+     * Lưu các ảnh với thứ tự cụ thể và trả về danh sách thông tin ảnh
+     */
     @Override
     public List<ImageDto> uploadMultipleFiles(Long idProduct, List<MultipartFile> files) {
         // Kiểm tra bài đăng có tồn tại không
@@ -67,11 +75,16 @@ public class ImageServiceImp implements ImageService {
                     .path(image.getId())
                     .toUriString();
             // Thêm vào danh sách kết quả
-            imageDtos.add(new ImageDto(image.getId(), image.getFileName(), file.getContentType(), fileDownloadUri, idProduct));
+            imageDtos.add(new ImageDto(image.getId(), image.getFileName(), file.getContentType(), fileDownloadUri,
+                    idProduct));
         }
         return imageDtos;
     }
 
+    /**
+     * Lưu ảnh vào database với thứ tự tự động
+     * Tìm thứ tự tiếp theo dựa trên số ảnh hiện có của sản phẩm
+     */
     @Override
     public Image storeImage(Long idProduct, MultipartFile file) {
         // Lấy tên file và validate
@@ -97,6 +110,10 @@ public class ImageServiceImp implements ImageService {
         }
     }
 
+    /**
+     * Lưu ảnh vào database với thứ tự được chỉ định
+     * Sử dụng khi cần kiểm soát thứ tự ảnh cụ thể
+     */
     @Override
     public Image storeImageWithOrder(Long idProduct, MultipartFile file, Integer orderIndex) {
         // Lấy tên file và validate
@@ -119,12 +136,20 @@ public class ImageServiceImp implements ImageService {
         }
     }
 
+    /**
+     * Lấy thông tin ảnh theo ID
+     * Trả về đối tượng Image chứa dữ liệu ảnh
+     */
     @Override
     public Image getImage(String imageId) {
         return imageRepository.findById(imageId)
                 .orElseThrow(() -> new DataNotFoundException("Không tim thấy ảnh có id " + imageId));
     }
 
+    /**
+     * Lấy danh sách link URI của tất cả ảnh thuộc sản phẩm
+     * Trả về danh sách các đường dẫn để truy cập ảnh
+     */
     @Override
     public List<String> getImageByIdProduct(Long idProduct) {
         // Tạo danh sách để chứa link ảnh
@@ -142,6 +167,10 @@ public class ImageServiceImp implements ImageService {
         return uri;
     }
 
+    /**
+     * Xóa tất cả ảnh của sản phẩm
+     * Dùng khi cần xóa toàn bộ ảnh liên quan đến sản phẩm
+     */
     @Override
     public void deleteAllImages(Long idProduct) {
         Optional<Product> product = productRepository.findById(idProduct);
@@ -153,6 +182,10 @@ public class ImageServiceImp implements ImageService {
         }
     }
 
+    /**
+     * Lấy danh sách DTO của ảnh thuộc sản phẩm
+     * Bao gồm dữ liệu ảnh được mã hóa Base64, đã sắp xếp theo thứ tự
+     */
     @Override
     public List<ImageDto> getImageDTOByIdProduct(Long idProduct) {
         Optional<Product> product = productRepository.findById(idProduct);
@@ -171,6 +204,10 @@ public class ImageServiceImp implements ImageService {
         }
     }
 
+    /**
+     * Cập nhật thứ tự hiển thị của các ảnh trong sản phẩm
+     * Nhận danh sách ID ảnh theo thứ tự mới và cập nhật orderIndex
+     */
     @Override
     public void updateImageOrder(Long idProduct, List<String> imageIds) {
         Optional<Product> product = productRepository.findById(idProduct);

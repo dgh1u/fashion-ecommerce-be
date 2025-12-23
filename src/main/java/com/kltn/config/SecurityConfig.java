@@ -75,7 +75,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/payment/**").permitAll()
                 .requestMatchers("/api/products").permitAll()
                 .requestMatchers("/api/product/{id}").permitAll()
-                .requestMatchers("/api/comments").permitAll()
                 .requestMatchers("/api/sizes").permitAll()
                 .requestMatchers(HttpMethod.GET, "/auth/profile").permitAll()
                 .anyRequest().authenticated());

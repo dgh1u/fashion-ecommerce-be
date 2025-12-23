@@ -1,21 +1,15 @@
 package com.kltn.service.impl;
 
 import com.kltn.dto.entity.*;
-import com.kltn.dto.response.product.*;
-import com.kltn.model.*;
-import com.kltn.repository.*;
-import com.kltn.dto.entity.*;
 import com.kltn.dto.request.product.CreateProductRequest;
 import com.kltn.dto.request.product.UpdateProductRequest;
 import com.kltn.dto.response.product.*;
 import com.kltn.exception.DataNotFoundException;
 import com.kltn.mapper.CriteriaMapper;
-import com.kltn.mapper.CommentMapper;
 import com.kltn.mapper.ProductMapper;
 import com.kltn.mapper.ProductInventoryMapper;
 import com.kltn.mapper.UserMapper;
 import com.kltn.model.*;
-import com.kltn.model.enums.ActionName;
 import com.kltn.repository.*;
 import com.kltn.repository.custom.CustomProductQuery;
 import com.kltn.service.ProductService;
@@ -54,13 +48,9 @@ public class ProductServiceImp implements ProductService {
 
     private final CriteriaRepository criteriaRepository;
 
-    private final CommentRepository commentRepository;
-
     private final ImageServiceImp imageServiceImp;
 
-    private final DocumentServiceImpl documentServiceImpl;
 
-    private final ActionServiceImp actionService;
 
     ; // Some Mapper in this
     private final ProductMapper productMapper;
@@ -69,11 +59,12 @@ public class ProductServiceImp implements ProductService {
 
     private final UserMapper userMapper;
 
-    private final CommentMapper commentMapper;
-
     private final ProductInventoryMapper productInventoryMapper;
 
-    // hold
+    /**
+     * Lấy tất cả sản phẩm với phân trang và filter
+     * Sử dụng Specification để lọc theo các tiêu chí
+     */
     @Override
     public Page<Product> getAllProduct(CustomProductQuery.ProductFilterParam param, PageRequest pageRequest) {
         try {
@@ -84,6 +75,11 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
+    /**
+     * Lấy tất cả sản phẩm kèm thông tin tồn kho
+     * Tránh N+1 query bằng cách fetch tất cả inventories một lần
+     * Trả về ProductDto với đầy đủ thông tin
+     */
     @Override
     @Transactional
     public Page<ProductDto> getAllProductWithInventories(CustomProductQuery.ProductFilterParam param,
@@ -147,7 +143,10 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
-    // hold
+    /**
+     * Lấy chi tiết sản phẩm theo ID
+     * Bao gồm thông tin criteria, images và inventories
+     */
     @Override
     @Transactional
     public ProductDto getProductById(Long id) {
@@ -159,12 +158,6 @@ public class ProductServiceImp implements ProductService {
             ProductDto productDto = productMapper.toProductDto(product.get());
             // Lay cho o ra
             CriteriaDto criteriaDto = criteriaMapper.toCriteriaDto(product.get().getCriteria());
-            // Lấy các bình luận của bài đăng
-            List<CommentDto> commentDtos = new ArrayList<>();
-            List<Comment> comments = commentRepository.findCommentsByProductId(id);
-            for (Comment comment : comments) {
-                commentDtos.add(commentMapper.toCommentDTO(comment));
-            }
             // Lấy hình ảnh của bài đăng
             List<String> images = imageServiceImp.getImageByIdProduct(id);
 
@@ -174,7 +167,6 @@ public class ProductServiceImp implements ProductService {
             // Thiết lập dữ liệu cho DTO
             productDto.setCriteriaDTO(criteriaDto);
             productDto.setImageStrings(images);
-            productDto.setCommentDTOS(commentDtos);
             productDto.setUserDTO(userMapper.toUserDto(product.get().getUser()));
 
             // Set inventories
@@ -191,6 +183,10 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
+    /**
+     * Tạo sản phẩm mới
+     * Tạo product, criteria và inventory cho sản phẩm
+     */
     @Override
     @Transactional
     public CreateProductResponse createProduct(CreateProductRequest createProductRequest, String email) {
@@ -231,9 +227,6 @@ public class ProductServiceImp implements ProductService {
                 createProductInventory(productSaved, createProductRequest.getInventory());
             }
 
-            // Tạo action cho bài đăng
-            actionService.createAction(product, user, ActionName.CREATE);
-
             return productMapper.toCreateProductResponse(productSaved);
         } catch (DataNotFoundException e) {
             throw e;
@@ -243,6 +236,10 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
+    /**
+     * Tạo tồn kho cho sản phẩm mới
+     * Lưu thông tin số lượng theo từng size
+     */
     private void createProductInventory(Product product, Map<Long, Integer> inventoryMap) {
         for (Map.Entry<Long, Integer> entry : inventoryMap.entrySet()) {
             Long sizeId = entry.getKey();
@@ -264,6 +261,11 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
+    /**
+     * Cập nhật tồn kho của sản phẩm
+     * Cập nhật hoặc tạo mới inventory cho từng size
+     * Xóa các inventory không còn trong danh sách
+     */
     private void updateProductInventory(Product product, Map<Long, Integer> inventoryMap) {
         // Approach 1: Update existing inventories và tạo mới nếu cần
         for (Map.Entry<Long, Integer> entry : inventoryMap.entrySet()) {
@@ -312,6 +314,10 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
+    /**
+     * Cập nhật thông tin sản phẩm
+     * Cập nhật title, content, criteria và inventory
+     */
     @Override
     @Transactional
     public UpdateProductResponse updateProduct(Long id, UpdateProductRequest updateProductRequest, String userId) {
@@ -358,6 +364,10 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
+    /**
+     * Ẩn/hiện sản phẩm
+     * Chuyển đổi trạng thái del (true/false)
+     */
     @Override
     public HiddenProductResponse hideProduct(Long id) {
         try {
@@ -383,6 +393,10 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
+    /**
+     * Xóa sản phẩm bởi Admin
+     * Xóa vĩnh viễn sản phẩm khỏi hệ thống
+     */
     @Override
     public DeleteProductResponse deleteProductByAdmin(Long id) {
         try {
@@ -404,6 +418,10 @@ public class ProductServiceImp implements ProductService {
         }
     }
 
+    /**
+     * Tìm kiếm sản phẩm theo bản đồ
+     * Chức năng chưa được triển khai
+     */
     @Override
     public Page<ProductDto> searchProductByMaps(SearchDto searchForm, int page, int sort) {
         return null;

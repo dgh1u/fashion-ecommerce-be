@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.kltn</groupId>
-	<artifactId>qltailieu-be</artifactId>
+	<artifactId>fashion-ecommerce-be</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>qltailieu-be</name>
+	<name>fashion-ecommerce-be</name>
 	<description>Document Management BE</description>
 	<url/>
 	<licenses>

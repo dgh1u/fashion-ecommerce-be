@@ -51,6 +51,15 @@ public class AuthenticateServiceImp implements AuthenticateService {
 
     private final UserMapper userMapper;
 
+    /**
+     * Xử lý đăng nhập người dùng
+     * Nhiệm vụ:
+     * - Kiểm tra email có tồn tại trong hệ thống
+     * - Xác thực mật khẩu
+     * - Kiểm tra trạng thái khóa tài khoản
+     * - Tạo JWT token
+     * - Trả về thông tin người dùng và token
+     */
     @Override
     public LoginResponse login(LoginRequest request) {
         Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
@@ -86,6 +95,15 @@ public class AuthenticateServiceImp implements AuthenticateService {
                 .build();
     }
 
+    /**
+     * Xử lý đăng ký tài khoản mới
+     * Nhiệm vụ:
+     * - Kiểm tra email đã tồn tại chưa
+     * - Tạo tài khoản người dùng mới với role CUSTOMER
+     * - Mã hóa mật khẩu
+     * - Lưu thông tin người dùng vào database
+     * - Trả về thông tin người dùng đã đăng ký
+     */
     @Override
     public RegisterResponse register(RegisterRequest request) {
         Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
@@ -123,6 +141,14 @@ public class AuthenticateServiceImp implements AuthenticateService {
                 .build();
     }
 
+    /**
+     * Xử lý xác thực tài khoản qua OTP
+     * Nhiệm vụ:
+     * - Kiểm tra email có tồn tại
+     * - Xác thực OTP và thời gian hiệu lực (2 phút)
+     * - Mở khóa tài khoản nếu OTP hợp lệ
+     * - Trả về kết quả xác thực
+     */
     @Override
     public String verifyAccount(VerifyAccountRequest request) {
         String email = request.getEmail();
@@ -141,6 +167,15 @@ public class AuthenticateServiceImp implements AuthenticateService {
         }
     }
 
+    /**
+     * Xử lý tạo lại mã OTP mới
+     * Nhiệm vụ:
+     * - Kiểm tra email có tồn tại
+     * - Tạo mã OTP mới
+     * - Cập nhật thời gian tạo OTP
+     * - Gửi email chứa OTP đến người dùng
+     * - Trả về thông báo thành công
+     */
     @Override
     public String regenerateOTP(RegenerateOtpRequest request) {
         Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
@@ -156,6 +191,15 @@ public class AuthenticateServiceImp implements AuthenticateService {
         return "Email đã gửi... Hãy xác thực trong 2 phút";
     }
 
+    /**
+     * Xử lý quên mật khẩu và đặt lại mật khẩu mới
+     * Nhiệm vụ:
+     * - Kiểm tra email có tồn tại
+     * - Xác thực OTP và thời gian hiệu lực (1 phút)
+     * - Mã hóa và cập nhật mật khẩu mới
+     * - Lưu thông tin vào database
+     * - Trả về kết quả xác thực
+     */
     @Override
     public String forgotPassword(ForgotPasswordRequest request) {
         String email = request.getEmail();
@@ -175,6 +219,14 @@ public class AuthenticateServiceImp implements AuthenticateService {
         }
     }
 
+    /**
+     * Xử lý cập nhật thông tin cá nhân người dùng
+     * Nhiệm vụ:
+     * - Kiểm tra người dùng có tồn tại
+     * - Cập nhật họ tên, số điện thoại, địa chỉ
+     * - Lưu thông tin vào database
+     * - Trả về thông tin người dùng đã cập nhật
+     */
     @Override
     public UserDto updateProfile(UpdateProfileRequest request) {
         Optional<User> userOptional = userRepository.findByEmail(request.getEmail());

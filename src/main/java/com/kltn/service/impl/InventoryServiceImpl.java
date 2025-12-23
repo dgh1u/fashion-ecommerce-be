@@ -23,6 +23,11 @@ public class InventoryServiceImpl implements InventoryService {
     private final ProductInventoryRepository productInventoryRepository;
     private final OrderItemRepository orderItemRepository;
 
+    /**
+     * Cập nhật tồn kho sau khi thanh toán thành công
+     * Trừ số lượng tồn kho cho từng sản phẩm trong đơn hàng
+     * Kiểm tra số lượng tồn kho trước khi trừ
+     */
     @Override
     public void updateInventoryAfterPayment(Orders order) {
         try {

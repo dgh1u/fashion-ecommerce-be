@@ -26,6 +26,10 @@ public class CartServiceImpl implements CartService {
     private final UserRepository userRepository;
     private final CartMapper cartMapper;
 
+    /**
+     * Lấy giỏ hàng của người dùng theo userId
+     * Nếu chưa có giỏ hàng thì tạo mới
+     */
     @Override
     public CartResponse getCartByUserId(Long userId) {
         Optional<Cart> cartOpt = cartRepository.findByUserIdWithItems(userId);
@@ -44,6 +48,11 @@ public class CartServiceImpl implements CartService {
         return cartMapper.toCartResponse(cart);
     }
 
+    /**
+     * Thêm sản phẩm vào giỏ hàng
+     * Nếu sản phẩm đã tồn tại trong giỏ hàng thì tăng số lượng
+     * Nếu chưa tồn tại thì tạo mới cart item
+     */
     @Override
     public CartResponse addToCart(Long userId, AddToCartRequest request) {
         // Kiểm tra product và size có tồn tại không
@@ -85,6 +94,10 @@ public class CartServiceImpl implements CartService {
         return getCartByUserId(userId);
     }
 
+    /**
+     * Cập nhật số lượng sản phẩm trong giỏ hàng
+     * Kiểm tra quyền sở hữu trước khi cập nhật
+     */
     @Override
     public CartResponse updateCartItem(Long userId, UpdateCartItemRequest request) {
         CartItem cartItem = cartItemRepository.findById(request.getCartItemId())
@@ -101,6 +114,10 @@ public class CartServiceImpl implements CartService {
         return getCartByUserId(userId);
     }
 
+    /**
+     * Xóa sản phẩm khỏi giỏ hàng
+     * Kiểm tra quyền sở hữu trước khi xóa
+     */
     @Override
     public CartResponse removeFromCart(Long userId, Long cartItemId) {
         CartItem cartItem = cartItemRepository.findById(cartItemId)
@@ -115,6 +132,9 @@ public class CartServiceImpl implements CartService {
         return getCartByUserId(userId);
     }
 
+    /**
+     * Xóa toàn bộ sản phẩm trong giỏ hàng của người dùng
+     */
     @Override
     public void clearCart(Long userId) {
         Optional<Cart> cartOpt = cartRepository.findByUserId(userId);

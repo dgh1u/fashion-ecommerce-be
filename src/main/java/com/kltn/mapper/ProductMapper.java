@@ -1,6 +1,5 @@
 package com.kltn.mapper;
 
-import com.kltn.dto.entity.DocumentDto;
 import com.kltn.dto.entity.CriteriaDto;
 import com.kltn.dto.entity.ProductDto;
 import com.kltn.dto.request.product.CreateProductRequest;
@@ -14,20 +13,14 @@ import org.mapstruct.Mapping;
 import java.util.ArrayList;
 import java.util.List;
 
-@Mapper(componentModel = "spring", uses = { UserMapper.class, CriteriaMapper.class, CommentMapper.class,
-        DocumentMapper.class, ProductInventoryMapper.class })
+@Mapper(componentModel = "spring", uses = { UserMapper.class, CriteriaMapper.class,
+        ProductInventoryMapper.class })
 public interface ProductMapper {
 
     @Mapping(target = "userDTO", source = "user")
     @Mapping(target = "criteriaDTO", source = "criteria")
 
     ProductDto toProductDto(Product product);
-
-    // Method helper để map documents
-    default List<DocumentDto> getDocumentDtos(Product product) {
-        // Logic để lấy documents sẽ được xử lý trong service layer
-        return new ArrayList<>();
-    }
 
     Product toProduct(ProductDto productDto);
 

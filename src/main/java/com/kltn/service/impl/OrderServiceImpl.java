@@ -27,6 +27,11 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
 
+    /**
+     * Lấy tất cả đơn hàng với phân trang và filter
+     * Hỗ trợ tìm kiếm theo keywords, status, userId, và khoảng thời gian
+     * Sử dụng native query cho partial search với text fields
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<OrderDto> getAllOrders(GetOrderRequest request, Pageable pageable) {
@@ -72,6 +77,10 @@ public class OrderServiceImpl implements OrderService {
         });
     }
 
+    /**
+     * Lấy danh sách đơn hàng của một user với phân trang và filter
+     * Chỉ trả về các đơn hàng thuộc về user được chỉ định
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<OrderDto> getOrdersByUserId(GetOrderRequest request, Pageable pageable, Long userId) {
@@ -101,6 +110,10 @@ public class OrderServiceImpl implements OrderService {
         });
     }
 
+    /**
+     * Lấy chi tiết đơn hàng theo ID
+     * Bao gồm thông tin các order items và sản phẩm liên quan
+     */
     @Override
     @Transactional(readOnly = true)
     public OrderDto getOrderById(Long id) {
@@ -120,6 +133,10 @@ public class OrderServiceImpl implements OrderService {
         return orderDto;
     }
 
+    /**
+     * Lấy chi tiết đơn hàng theo ID và userId
+     * Kiểm tra quyền sở hữu - chỉ trả về nếu đơn hàng thuộc về user
+     */
     @Override
     @Transactional(readOnly = true)
     public OrderDto getOrderByIdAndUserId(Long id, Long userId) {
@@ -139,6 +156,11 @@ public class OrderServiceImpl implements OrderService {
         return orderDto;
     }
 
+    /**
+     * Hủy đơn hàng (dành cho admin)
+     * Kiểm tra trạng thái và thời gian (chỉ cho phép hủy trong vòng 24h)
+     * Không cho phép hủy đơn đã giao hoặc đang vận chuyển
+     */
     @Override
     @Transactional
     public void cancelOrder(Long id) {
@@ -183,6 +205,11 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
     }
 
+    /**
+     * Hủy đơn hàng (dành cho user)
+     * Kiểm tra quyền sở hữu, trạng thái và thời gian
+     * Chỉ cho phép hủy đơn hàng của chính mình trong vòng 24h
+     */
     @Override
     @Transactional
     public void cancelOrderByUserId(Long id, Long userId) {
@@ -227,6 +254,29 @@ public class OrderServiceImpl implements OrderService {
 
         // Cập nhật trạng thái đơn hàng thành "cancelled"
         order.setStatus("cancelled");
+        order.setUpdatedAt(LocalDateTime.now());
+
+        orderRepository.save(order);
+    }
+
+    /**
+     * Cập nhật trạng thái đơn hàng (dành cho admin)
+     * Cho phép thay đổi giữa các trạng thái: pending, paid, cancelled
+     * Admin có quyền thay đổi trạng thái tự do
+     */
+    @Override
+    @Transactional
+    public void updateOrderStatus(Long id, String status) {
+        Orders order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với ID: " + id));
+
+        // Validate status - chỉ cho phép 3 trạng thái: pending, paid, cancelled
+        if (!List.of("pending", "paid", "cancelled").contains(status)) {
+            throw new RuntimeException("Trạng thái không hợp lệ. Chỉ cho phép: pending, paid, cancelled");
+        }
+
+        // Admin có thể thay đổi trạng thái tự do, không bị giới hạn
+        order.setStatus(status);
         order.setUpdatedAt(LocalDateTime.now());
 
         orderRepository.save(order);

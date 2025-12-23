@@ -1,4 +1,4 @@
-spring.application.name: qltailieu-be
+spring.application.name: fashion-ecommerce-be
 server:
   port: ${PORT}
 spring:

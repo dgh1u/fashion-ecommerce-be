@@ -38,6 +38,10 @@ public class PaymentServiceImpl implements PaymentService {
     private final OrderRepository orderRepository;
     private final InventoryService inventoryService;
 
+    /**
+     * Tạo link thanh toán cho nạp tiền vào tài khoản
+     * Tạo PaymentHistory và gọi yêu cầu tới PayOS
+     */
     @Override
     public CreatePaymentLinkResponse createPayment(CreatePaymentRequest request, Long id) {
         try {
@@ -84,6 +88,10 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    /**
+     * Tạo link thanh toán cho đơn hàng
+     * Tạo PaymentHistory liên kết với Order và gọi yêu cầu tới PayOS
+     */
     @Override
     public CreatePaymentLinkResponse createPaymentLinkForOrder(CreatePaymentRequest request, Long userId,
             Long orderId) {
@@ -138,6 +146,11 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    /**
+     * Xử lý webhook từ PayOS
+     * Cập nhật trạng thái thanh toán, đơn hàng và tồn kho
+     * Ghi log chi tiết quá trình xử lý
+     */
     @Override
     public void receiveHook(PaymentReceiveHookRequest request) {
         try {
@@ -238,6 +251,10 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    /**
+     * Lấy tất cả lịch sử thanh toán với phân trang và filter
+     * Sử dụng Specification để lọc theo tiêu chí
+     */
     @Override
     public Page<PaymentHistory> getAllPayment(CustomPaymentQuery.PaymentFilterParam param, PageRequest pageRequest) {
         Specification<PaymentHistory> specification = CustomPaymentQuery.getFilterPayment(param);

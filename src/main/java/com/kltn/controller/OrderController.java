@@ -76,7 +76,7 @@ public class OrderController {
 
     @ApiOperation(value = "Hủy đơn hàng (Admin)")
     @PatchMapping("/admin/order/{id}/cancel")
-    
+
     public ResponseEntity<?> cancelOrderForAdmin(@PathVariable Long id) {
         try {
             orderService.cancelOrder(id);
@@ -96,6 +96,17 @@ public class OrderController {
 
             orderService.cancelOrderByUserId(id, userId);
             return BaseResponse.successData("Hủy đơn hàng thành công");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
+        }
+    }
+
+    @ApiOperation(value = "Cập nhật trạng thái đơn hàng (Admin)")
+    @PatchMapping("/admin/order/{id}/status")
+    public ResponseEntity<?> updateOrderStatus(@PathVariable Long id, @RequestParam String status) {
+        try {
+            orderService.updateOrderStatus(id, status);
+            return BaseResponse.successData("Cập nhật trạng thái đơn hàng thành công");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }

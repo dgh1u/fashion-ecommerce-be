@@ -9,6 +9,8 @@ import com.kltn.model.User;
 import com.kltn.repository.PaymentRepository;
 import com.kltn.repository.UserRepository;
 import com.kltn.repository.ProductRepository;
+import com.kltn.repository.OrderRepository;
+import com.kltn.repository.ProductInventoryRepository;
 import com.kltn.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +39,17 @@ public class DashboardServiceImp implements DashboardService {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final OrderRepository orderRepository;
+    private final ProductInventoryRepository productInventoryRepository;
 
     // Giả sử định dạng của trường transactionDateTime là "yyyy-MM-dd HH:mm:ss"
     private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /**
+     * Lấy thống kê doanh thu theo khoảng thời gian
+     * Nhóm dữ liệu theo ngày/tháng/năm và tính tổng số giao dịch, tổng doanh thu
+     * Lọc các giao dịch thành công trong khoảng thời gian start-end
+     */
     @Override
     public List<DashboardRevenueStatDTO> getRevenueStatistics(String start, String end, String groupBy) {
         // Xây dựng Specification để lọc theo khoảng thời gian dựa vào
@@ -57,6 +66,11 @@ public class DashboardServiceImp implements DashboardService {
         };
 
         List<PaymentHistory> payments = paymentRepository.findAll(spec);
+
+        // Lọc ra các payment có transactionDateTime null hoặc rỗng
+        payments = payments.stream()
+                .filter(p -> p.getTransactionDateTime() != null && !p.getTransactionDateTime().isEmpty())
+                .collect(Collectors.toList());
 
         // Hàm nhóm các giao dịch theo đơn vị: day, month hoặc year
         Function<PaymentHistory, String> groupingFunction = payment -> {
@@ -101,6 +115,10 @@ public class DashboardServiceImp implements DashboardService {
         return result;
     }
 
+    /**
+     * Lấy tổng quan dashboard
+     * Tính tổng số người dùng, giao dịch, sản phẩm, doanh thu, đơn hàng và tồn kho
+     */
     @Override
     public DashboardSummaryDTO getDashboardSummary() {
         long totalUsers = userRepository.count();
@@ -111,9 +129,23 @@ public class DashboardServiceImp implements DashboardService {
                 .sum();
         long totalProducts = productRepository.count();
 
-        return new DashboardSummaryDTO(totalUsers, totalPayments, totalProducts, totalRevenue);
+        // Tính tổng số đơn hàng
+        long totalOrders = orderRepository.count();
+
+        // Tính tổng số tồn kho (tổng quantity của tất cả ProductInventory)
+        long totalInventory = productInventoryRepository.findAll().stream()
+                .mapToLong(pi -> pi.getQuantity() != null ? pi.getQuantity() : 0)
+                .sum();
+
+        return new DashboardSummaryDTO(totalUsers, totalPayments, totalProducts, totalRevenue, totalOrders,
+                totalInventory);
     }
 
+    /**
+     * Lấy thống kê sản phẩm theo khoảng thời gian
+     * Nhóm sản phẩm theo ngày/tháng/năm dựa trên thời gian tạo (createAt)
+     * Đếm số lượng sản phẩm được tạo trong mỗi nhóm thời gian
+     */
     @Override
     public List<DashboardUserProductStatDTO> getUserProductStatistics(String start, String end, String groupBy) {
         // Specification cho Product
