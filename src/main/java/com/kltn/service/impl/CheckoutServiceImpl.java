@@ -25,6 +25,8 @@ import java.util.Optional;
 @Transactional
 public class CheckoutServiceImpl implements CheckoutService {
 
+    private static final int SHIPPING_FEE = 30000; // Phí vận chuyển cố định
+
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -36,7 +38,7 @@ public class CheckoutServiceImpl implements CheckoutService {
      * Xử lý thanh toán đơn hàng
      * Các bước thực hiện:
      * 1. Lấy giỏ hàng và kiểm tra
-     * 2. Tính tổng tiền và validate
+     * 2. Tính tổng tiền và validate (bao gồm phí vận chuyển)
      * 3. Tạo đơn hàng mới
      * 4. Tạo các order items từ cart items
      * 5. Tạo payment request
@@ -54,13 +56,16 @@ public class CheckoutServiceImpl implements CheckoutService {
 
             Cart cart = cartOpt.get();
 
-            // 2. Tính tổng tiền và kiểm tra
-            int calculatedTotal = cart.getCartItems().stream()
+            // 2. Tính tổng tiền và kiểm tra (bao gồm phí vận chuyển)
+            int subtotal = cart.getCartItems().stream()
                     .mapToInt(item -> item.getQuantity() * item.getProduct().getCriteria().getPrice())
                     .sum();
 
+            int calculatedTotal = subtotal + SHIPPING_FEE;
+
             if (!Objects.equals(calculatedTotal, request.getTotalAmount())) {
-                throw new DataNotFoundException("Tổng tiền không khớp");
+                throw new DataNotFoundException("Tổng tiền không khớp. Tính toán: " + calculatedTotal + ", Nhận được: "
+                        + request.getTotalAmount());
             }
 
             // 3. Tạo đơn hàng

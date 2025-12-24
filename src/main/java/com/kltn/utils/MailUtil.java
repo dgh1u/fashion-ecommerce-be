@@ -28,7 +28,7 @@ public class MailUtil {
             </div>
             
             <div style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; text-align: center;">
-                <h3 style="color: #333; margin-top: 0;">Quên mật khẩu</h3>
+                <h3 style="color: #333; margin-top: 0;">Quên mật kh</h3>
                 <p style="color: #666; margin-bottom: 20px;">Mã OTP của bạn là:</p>
                 
                 <div style="background-color: #fff; border: 2px solid #2c5aa0; border-radius: 6px; padding: 15px; margin: 20px 0; display: inline-block;">
